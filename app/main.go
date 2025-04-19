@@ -53,8 +53,13 @@ func main() {
 			os.Exit(1)
 		}
 	} else if strings.HasPrefix(path[1], "/user-agent") {
-		userAgentLine := strings.Split(request, "\r\n")[2]
-		userAgent := userAgentLine[11:]
+		lines := strings.Split(request, "\r\n")
+		i, err := findUserAgentLine(lines)
+		if err != nil {
+			fmt.Println("Error reading User-Agent ", err.Error())
+			os.Exit(1)
+		}
+		userAgent := strings.TrimSpace(lines[i][11:])
 		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)))
 		if err != nil {
 			fmt.Println("Error sending 200 request: ", err.Error())
@@ -69,4 +74,14 @@ func main() {
 
 	}
 
+}
+
+func findUserAgentLine(lines []string) (int, error) {
+	for i := 0; i < len(lines); i++ {
+		if strings.HasPrefix(lines[i], "User-Agent:") {
+			return i, nil
+		}
+	}
+
+	return -1, fmt.Errorf("User-Agent not found")
 }
