@@ -38,8 +38,16 @@ func main() {
 	request := string(buf[:reqLen])
 
 	path := strings.Split(request, " ")
+
 	if path[1] == "/" {
 		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		if err != nil {
+			fmt.Println("Error sending 200 request: ", err.Error())
+			os.Exit(1)
+		}
+	} else if strings.HasPrefix(path[1], "/echo") {
+		content := path[1][6:]
+		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
 		if err != nil {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
