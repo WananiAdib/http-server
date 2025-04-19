@@ -45,7 +45,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		_, err = conn.Write([]byte("HTTP/1.1 404 OK\r\n\r\n"))
+		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error sending 404 request: ", err.Error())
 			os.Exit(1)
