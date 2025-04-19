@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
@@ -14,8 +15,6 @@ func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 
-	// Uncomment this block to pass the first stage
-	//
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
@@ -28,9 +27,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	buf := make([]byte, 1024)
+
+	reqLen, err := conn.Read(buf)
 	if err != nil {
-		fmt.Println("Error sending 200 request: ", err.Error())
+		fmt.Println("Error reading request: ", err.Error())
 		os.Exit(1)
 	}
+
+	request := string(buf[:reqLen])
+
+	path := strings.Split(request, " ")
+	if path[1] == "/" {
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		if err != nil {
+			fmt.Println("Error sending 200 request: ", err.Error())
+			os.Exit(1)
+		}
+	} else {
+		_, err = conn.Write([]byte("HTTP/1.1 400 OK\r\n\r\n"))
+		if err != nil {
+			fmt.Println("Error sending 400 request: ", err.Error())
+			os.Exit(1)
+		}
+
+	}
+
 }
