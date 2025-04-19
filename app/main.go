@@ -52,6 +52,14 @@ func main() {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
+	} else if strings.HasPrefix(path[1], "/user-agent") {
+		userAgentLine := strings.Split(request, "\r\n")[2]
+		userAgent := userAgentLine[11:]
+		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)))
+		if err != nil {
+			fmt.Println("Error sending 200 request: ", err.Error())
+			os.Exit(1)
+		}
 	} else {
 		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		if err != nil {
