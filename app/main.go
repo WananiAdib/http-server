@@ -51,6 +51,27 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
+	} else if strings.HasPrefix(path[1], "/files") {
+		filepath := "/tmp" + path[1][len("/files"):]
+		content, err := os.ReadFile(filepath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				if err != nil {
+					fmt.Println("Error sending 404 request: ", err.Error())
+					os.Exit(1)
+				}
+				return
+			}
+			fmt.Println("Error reading file: ", err.Error())
+			os.Exit(1)
+		}
+
+		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
+		if err != nil {
+			fmt.Println("Error sending 200 request: ", err.Error())
+			os.Exit(1)
+		}
 	} else {
 		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		if err != nil {
