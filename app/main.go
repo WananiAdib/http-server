@@ -64,17 +64,36 @@ func handleConnection(conn net.Conn) {
 		}
 
 	case strings.HasPrefix(endpoint, "/files"):
-		filepath := os.Args[2] + endpoint[len("/files"):]
-		content, err := os.ReadFile(filepath)
-		if err != nil {
-			write404Response(conn)
-			return
-		}
+		switch {
+		case path[0] == "GET":
+			filepath := os.Args[2] + endpoint[len("/files/"):]
+			content, err := os.ReadFile(filepath)
+			if err != nil {
+				write404Response(conn)
+				return
+			}
 
-		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
-		if err != nil {
-			fmt.Println("Error sending 200 request: ", err.Error())
-			os.Exit(1)
+			_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
+			if err != nil {
+				fmt.Println("Error sending 200 request: ", err.Error())
+				os.Exit(1)
+			}
+		case path[0] == "POST":
+			fmt.Println("here")
+			filepath := os.Args[2] + endpoint[len("/files/"):]
+			lines := strings.Split(request, "\r\n")
+			body := lines[len(lines)-1]
+			fmt.Println(filepath, "body", body)
+			err = os.WriteFile(filepath, []byte(body), 0644)
+			if err != nil {
+				fmt.Println("error writing files: ", err.Error())
+				os.Exit(1)
+			}
+			_, err = conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+			if err != nil {
+				fmt.Println("Error sending 201 request: ", err.Error())
+				os.Exit(1)
+			}
 		}
 
 	default:
