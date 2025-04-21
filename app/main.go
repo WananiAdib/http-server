@@ -11,6 +11,14 @@ import (
 var _ = net.Listen
 var _ = os.Exit
 
+func write404Response(conn net.Conn) {
+	_, err := conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	if err != nil {
+		fmt.Println("Error sending 404 request: ", err.Error())
+		os.Exit(1)
+	}
+}
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	buf := make([]byte, 1024)
@@ -22,23 +30,26 @@ func handleConnection(conn net.Conn) {
 	}
 
 	request := string(buf[:reqLen])
-
 	path := strings.Split(request, " ")
+	endpoint := path[1]
 
-	if path[1] == "/" {
+	switch {
+	case endpoint == "/":
 		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
-	} else if strings.HasPrefix(path[1], "/echo") {
-		content := path[1][6:]
+
+	case strings.HasPrefix(endpoint, "/echo"):
+		content := endpoint[6:]
 		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
 		if err != nil {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
-	} else if strings.HasPrefix(path[1], "/user-agent") {
+
+	case strings.HasPrefix(endpoint, "/user-agent"):
 		lines := strings.Split(request, "\r\n")
 		i, err := findUserAgentLine(lines)
 		if err != nil {
@@ -51,15 +62,13 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
-	} else if strings.HasPrefix(path[1], "/files") {
-		filepath := os.Args[2] + path[1][len("/files"):]
+
+	case strings.HasPrefix(endpoint, "/files"):
+		filepath := os.Args[2] + endpoint[len("/files"):]
 		content, err := os.ReadFile(filepath)
 		if err != nil {
-			_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-			if err != nil {
-				fmt.Println("Error sending 404 request: ", err.Error())
-				os.Exit(1)
-			}
+			write404Response(conn)
+			return
 		}
 
 		_, err = conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
@@ -67,13 +76,9 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error sending 200 request: ", err.Error())
 			os.Exit(1)
 		}
-	} else {
-		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		if err != nil {
-			fmt.Println("Error sending 404 request: ", err.Error())
-			os.Exit(1)
-		}
 
+	default:
+		write404Response(conn)
 	}
 }
 
